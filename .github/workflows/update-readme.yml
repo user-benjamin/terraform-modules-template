@@ -1,0 +1,76 @@
+name: Update README on PR Changes
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }} # Checkout the PR branch
+
+      - name: Get PR Changes
+        id: pr-changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+            const response = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: number,
+            });
+            const changedFiles = response.data.map(file => file.filename);
+            const prBody = context.payload.pull_request.body || 'No description provided';
+            
+            // Identify root .tf files that were changed
+            const rootTfFiles = changedFiles.filter(file => 
+              file.match(/^[^\/]+\.tf$/) // Match files like example.tf but not dir/example.tf
+            );
+            
+            // Identify new files
+            const newFiles = response.data
+              .filter(file => file.status === 'added')
+              .map(file => file.filename);
+            
+            core.setOutput('changed_files', JSON.stringify(changedFiles));
+            core.setOutput('root_tf_files', JSON.stringify(rootTfFiles));
+            core.setOutput('new_files', JSON.stringify(newFiles));
+            core.setOutput('pr_body', prBody);
+
+      - name: Update README
+        run: |
+          changed_files='${{ steps.pr-changes.outputs.changed_files }}'
+          root_tf_files='${{ steps.pr-changes.outputs.root_tf_files }}'
+          new_files='${{ steps.pr-changes.outputs.new_files }}'
+          pr_body="${{ steps.pr-changes.outputs.pr_body }}"
+          
+          # Check if any root .tf files were changed
+          if [ "$(echo $root_tf_files | jq 'length')" -gt 0 ]; then
+            echo -e "\n## Terraform Changes" >> README.md
+            echo -e "The following root Terraform files were modified in this PR:" >> README.md
+            echo "$root_tf_files" | jq -r '.[]' | while read file; do
+              echo "- \`$file\`" >> README.md
+            done
+            
+            echo -e "\n### PR Description" >> README.md
+            echo "$pr_body" >> README.md
+          fi
+
+          # Check if any new files were added
+          if [ "$(echo $new_files | jq 'length')" -gt 0 ]; then
+            echo -e "\n## New Files Added" >> README.md
+            echo "$new_files" | jq -r '.[]' | while read file; do
+              echo "- \`$file\`" >> README.md
+            done
+          fi
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update README based on PR changes"
+          branch: ${{ github.event.pull_request.head.ref }}
