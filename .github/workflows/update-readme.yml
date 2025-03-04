@@ -32,9 +32,15 @@ jobs:
       - name: Filter Terraform Changes
         id: filter-tf-changes
         run: |
-          changed_files='${{ steps.pr-changes.outputs.changed_files }}' # get the json string.
-          tf_files=$(echo "$changed_files" | jq -r '.[] | select(endswith(".tf"))') # Filter for .tf files.
-          echo "tf_files=$tf_files" >> $GITHUB_OUTPUT
+          changed_files='${{ steps.pr-changes.outputs.changed_files }}'
+          tf_files=$(echo "$changed_files" | jq -r '.[] | select(endswith(".tf"))')
+          if [[ -n "$tf_files" ]]; then
+            tf_files_joined=$(echo "$tf_files" | tr '\n' ',')
+            tf_files_joined="${tf_files_joined%,}"
+            echo "tf_files=$tf_files_joined" >> $GITHUB_OUTPUT
+          else
+            echo "tf_files=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Update README (Terraform Changes)
         if: ${{ steps.filter-tf-changes.outputs.tf_files != '' }}
