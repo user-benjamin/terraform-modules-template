@@ -37,15 +37,15 @@ module "<module_name>" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| vpc_id | ID of the VPC where resources will be created | `string` | n/a | yes |
-| subnet_ids | List of subnet IDs for resource placement | `list(string)` | n/a | yes |
-| instance_type | EC2 instance type to use | `string` | `"t3.micro"` | no |
-| tags | Map of tags to apply to all resources | `map(string)` | `{}` | no |
+| (example) vpc_id | ID of the VPC where resources will be created | `string` | n/a | yes |
+| (example) subnet_ids | List of subnet IDs for resource placement | `list(string)` | n/a | yes |
+| (example) instance_type | EC2 instance type to use | `string` | `"t3.micro"` | no |
+| (example) tags | Map of tags to apply to all resources | `map(string)` | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| instance_id | ID of the created EC2 instance |
-| security_group_id | ID of the security group attached to the instance |
-| public_ip | Public IP address assigned to the instance |
+| (example)instance_id | ID of the created EC2 instance |
+| (example)security_group_id | ID of the security group attached to the instance |
+| (example)public_ip | Public IP address assigned to the instance |
