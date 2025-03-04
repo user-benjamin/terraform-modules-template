@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }} # Checkout the PR branch
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Get PR Changes
         id: pr-changes
@@ -25,52 +25,32 @@ jobs:
               pull_number: number,
             });
             const changedFiles = response.data.map(file => file.filename);
-            const prBody = context.payload.pull_request.body || 'No description provided';
-            
-            // Identify root .tf files that were changed
-            const rootTfFiles = changedFiles.filter(file => 
-              file.match(/^[^\/]+\.tf$/) // Match files like example.tf but not dir/example.tf
-            );
-            
-            // Identify new files
-            const newFiles = response.data
-              .filter(file => file.status === 'added')
-              .map(file => file.filename);
-            
+            const prBody = context.payload.pull_request.body;
             core.setOutput('changed_files', JSON.stringify(changedFiles));
-            core.setOutput('root_tf_files', JSON.stringify(rootTfFiles));
-            core.setOutput('new_files', JSON.stringify(newFiles));
             core.setOutput('pr_body', prBody);
 
-      - name: Update README
+      - name: Filter Terraform Changes
+        id: filter-tf-changes
         run: |
-          changed_files='${{ steps.pr-changes.outputs.changed_files }}'
-          root_tf_files='${{ steps.pr-changes.outputs.root_tf_files }}'
-          new_files='${{ steps.pr-changes.outputs.new_files }}'
-          pr_body="${{ steps.pr-changes.outputs.pr_body }}"
-          
-          # Check if any root .tf files were changed
-          if [ "$(echo $root_tf_files | jq 'length')" -gt 0 ]; then
-            echo -e "\n## Terraform Changes" >> README.md
-            echo -e "The following root Terraform files were modified in this PR:" >> README.md
-            echo "$root_tf_files" | jq -r '.[]' | while read file; do
-              echo "- \`$file\`" >> README.md
-            done
-            
-            echo -e "\n### PR Description" >> README.md
-            echo "$pr_body" >> README.md
-          fi
+          changed_files="${{ steps.pr-changes.outputs.changed_files }}"
+          tf_files=$(echo "$changed_files" | jq -r '.[] | select(startswith("./") and endswith(".tf"))') # Filter for .tf files in the root
+          echo "tf_files=$tf_files" >> $GITHUB_OUTPUT
 
-          # Check if any new files were added
-          if [ "$(echo $new_files | jq 'length')" -gt 0 ]; then
-            echo -e "\n## New Files Added" >> README.md
-            echo "$new_files" | jq -r '.[]' | while read file; do
-              echo "- \`$file\`" >> README.md
-            done
-          fi
+      - name: Update README (Terraform Changes)
+        if: ${{ steps.filter-tf-changes.outputs.tf_files != '' }}
+        run: |
+          tf_files="${{ steps.filter-tf-changes.outputs.tf_files }}"
+          pr_body="${{ steps.pr-changes.outputs.pr_body }}"
+
+          echo "## Terraform Changes Detected" >> README.md
+          echo "The following Terraform files were modified in this PR:" >> README.md
+          echo "$tf_files" >> README.md
+          echo "PR Description:" >> README.md
+          echo "$pr_body" >> README.md
 
       - name: Commit and Push Changes
+        if: ${{ steps.filter-tf-changes.outputs.tf_files != '' }}
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update README based on PR changes"
+          commit_message: "Update README with Terraform changes"
           branch: ${{ github.event.pull_request.head.ref }}
