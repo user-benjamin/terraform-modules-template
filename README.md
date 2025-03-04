@@ -49,3 +49,31 @@ module "<module_name>" {
 | (example)instance_id | ID of the created EC2 instance |
 | (example)security_group_id | ID of the security group attached to the instance |
 | (example)public_ip | Public IP address assigned to the instance |
+
+## Using Pre-Commit Hooks
+
+This repository uses pre-commit hooks to ensure Terraform code is correctly formatted, validated, and linted before committing.
+
+### Installing Pre-Commit
+
+Ensure pre-commit is installed:
+
+```bash
+pip install pre-commit
+```
+### Setting Up Pre-Commit Hooks
+Run the following command in the repository root:
+
+```bash
+pre-commit install
+```
+This ensures the hooks run automatically before each commit.
+
+### Running Pre-Commit Manually
+To run the pre-commit checks against all files manually:
+
+```bash
+pre-commit run --all-files
+```
+
+
