@@ -28,7 +28,7 @@ module "<module_name>" {
   <input_variable_name> = "<input_variable_value>"
   # ... other input variables
 }
-
+```
 
 **Changelog:**
 * List any significant changes to the module over its history.
