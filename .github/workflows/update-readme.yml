@@ -18,22 +18,22 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-              const { owner, repo, number } = context.issue;
-              const response = await github.rest.pulls.listFiles({
-                owner,
-                repo,
-                pull_number: number,
-              });
-              const changedFiles = response.data.map(file => file.filename);
-              const prBody = context.payload.pull_request.body;
-              core.setOutput('changed_files', JSON.stringify(changedFiles));
-              core.setOutput('pr_body', prBody);
+            const { owner, repo, number } = context.issue;
+            const response = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: number,
+            });
+            const changedFiles = response.data.map(file => file.filename);
+            const prBody = context.payload.pull_request.body;
+            core.setOutput('changed_files', JSON.stringify(changedFiles));
+            core.setOutput('pr_body', prBody);
 
       - name: Filter Terraform Changes
         id: filter-tf-changes
         run: |
-          changed_files="${{ steps.pr-changes.outputs.changed_files }}"
-          tf_files=$(echo "$changed_files" | jq -r '.[] | select(startswith("./") and endswith(".tf"))') # Filter for .tf files in the root
+          changed_files='${{ steps.pr-changes.outputs.changed_files }}' # get the json string.
+          tf_files=$(echo "$changed_files" | jq -r '.[] | select(endswith(".tf"))') # Filter for .tf files.
           echo "tf_files=$tf_files" >> $GITHUB_OUTPUT
 
       - name: Update README (Terraform Changes)
