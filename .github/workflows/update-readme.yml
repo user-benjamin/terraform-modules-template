@@ -50,7 +50,10 @@ jobs:
 
           echo "## Terraform Changes Detected" >> README.md
           echo "The following Terraform files were modified in this PR:" >> README.md
-          echo "$tf_files" >> README.md
+          IFS=',' read -ra FILES <<< "$tf_files"
+          for file in "${FILES[@]}"; do
+            echo "- $file" >> README.md
+          done
           echo "PR Description:" >> README.md
           echo "$pr_body" >> README.md
 
